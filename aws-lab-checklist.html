@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ACME Corp — AWS Ops Lab Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0E1420;
+    --surface: #161E2C;
+    --surface-alt: #1C2637;
+    --border: #2A3548;
+    --text: #E7ECF3;
+    --text-muted: #8B97AC;
+    --text-faint: #5E6A80;
+    --done: #4FAE7B;
+    --done-bg: rgba(79, 174, 123, 0.12);
+    --progress: #E8A33D;
+    --progress-bg: rgba(232, 163, 61, 0.12);
+    --accent: #5FBCD3;
+    --font-head: 'Space Grotesk', 'Segoe UI', Arial, sans-serif;
+    --font-body: 'IBM Plex Sans', 'Segoe UI', Arial, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  a { color: var(--accent); }
+
+  .wrap {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 48px 24px 96px;
+  }
+
+  header.top { margin-bottom: 40px; }
+
+  .eyebrow-line {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--done);
+    flex: none;
+  }
+
+  h1 {
+    font-family: var(--font-head);
+    font-weight: 600;
+    font-size: clamp(1.7rem, 4vw, 2.3rem);
+    margin: 0 0 10px;
+    letter-spacing: -0.01em;
+  }
+
+  .subtitle {
+    color: var(--text-muted);
+    max-width: 62ch;
+    margin: 0 0 28px;
+    font-size: 0.98rem;
+  }
+
+  .progress-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    display: flex;
+    align-items: center;
+    gap: 22px;
+  }
+
+  .ring { flex: none; width: 72px; height: 72px; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring-track { stroke: var(--surface-alt); }
+  .ring-fill { stroke: var(--done); stroke-linecap: round; transition: stroke-dashoffset 0.4s ease; }
+  .ring-label { font-family: var(--font-mono); font-size: 0.95rem; fill: var(--text); text-anchor: middle; transform: rotate(90deg); }
+
+  .progress-meta { flex: 1; min-width: 0; }
+  .progress-meta .count { font-family: var(--font-head); font-size: 1.05rem; margin-bottom: 4px; }
+  .progress-meta .count span { color: var(--text-muted); font-weight: 400; }
+
+  .progress-bar-track { height: 6px; border-radius: 3px; background: var(--surface-alt); overflow: hidden; margin-top: 8px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--progress), var(--done)); border-radius: 3px; transition: width 0.4s ease; }
+
+  .reset-btn {
+    flex: none;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.82rem;
+    padding: 7px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  .reset-btn:hover { border-color: var(--text-muted); color: var(--text); }
+  .reset-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .phase {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-top: 14px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+
+  .phase-head {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 20px;
+    cursor: pointer;
+    user-select: none;
+  }
+  .phase-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+
+  .phase-num { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-muted); flex: none; width: 30px; }
+  .phase-title { font-family: var(--font-head); font-weight: 600; font-size: 1.02rem; flex: 1; min-width: 0; }
+
+  .phase-status {
+    flex: none;
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    padding: 3px 9px;
+    border-radius: 5px;
+    color: var(--text-muted);
+    background: var(--surface-alt);
+    white-space: nowrap;
+  }
+  .phase-status.done { color: var(--done); background: var(--done-bg); }
+  .phase-status.progress { color: var(--progress); background: var(--progress-bg); }
+
+  .chev { flex: none; width: 16px; height: 16px; color: var(--text-muted); transition: transform 0.2s ease; }
+  .phase.open .chev { transform: rotate(180deg); }
+
+  .phase-body { display: none; padding: 0 20px 20px 20px; border-top: 1px solid var(--border); }
+  .phase.open .phase-body { display: block; padding-top: 16px; }
+
+  .phase-intro {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    background: var(--surface-alt);
+    border-left: 2px solid var(--accent);
+    border-radius: 4px;
+    padding: 10px 14px;
+    margin: 0 0 14px 42px;
+  }
+  .phase-intro strong { color: var(--text); font-weight: 600; }
+  .phase-intro .cost-line { margin-top: 4px; display: block; color: var(--progress); }
+
+  .task { padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .task:last-child { border-bottom: none; }
+
+  .task-row { display: flex; align-items: flex-start; gap: 11px; padding-left: 42px; }
+
+  .task input[type="checkbox"] {
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    flex: none;
+    accent-color: var(--done);
+    cursor: pointer;
+  }
+
+  .task label { cursor: pointer; color: var(--text); font-size: 0.96rem; }
+  .task.checked label { color: var(--text-muted); text-decoration: line-through; text-decoration-color: var(--border); }
+
+  .task-detail {
+    margin: 5px 0 0 27px;
+    padding-left: 42px;
+    font-size: 0.86rem;
+    color: var(--text-faint);
+    line-height: 1.55;
+  }
+  .task.checked .task-detail { color: var(--text-faint); opacity: 0.6; }
+  .task-detail code {
+    font-family: var(--font-mono);
+    background: var(--surface-alt);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-size: 0.83rem;
+    color: var(--accent);
+  }
+
+  footer { margin-top: 40px; color: var(--text-muted); font-size: 0.85rem; }
+
+  @media (max-width: 480px) {
+    .phase-intro { margin-left: 0; }
+    .task-row { padding-left: 0; }
+    .task-detail { padding-left: 27px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="eyebrow-line">
+      <span class="dot"></span>
+      <span>AWS Free Trial · $180 credit</span>
+    </div>
+    <h1>ACME Corp — Ops Lab Tracker</h1>
+    <p class="subtitle">เช็คลิสต์ + วิธีทำแบบละเอียดของ 11 Phase ในแผน lab สาย NOC / Backup / Cloud Operations บน AWS ข้อมูล progress บันทึกไว้ในเบราว์เซอร์นี้เท่านั้น</p>
+
+    <div class="progress-panel">
+      <div class="ring">
+        <svg viewBox="0 0 80 80" width="72" height="72">
+          <circle class="ring-track" cx="40" cy="40" r="34" fill="none" stroke-width="7"></circle>
+          <circle id="ringFill" class="ring-fill" cx="40" cy="40" r="34" fill="none" stroke-width="7"
+                  stroke-dasharray="213.6" stroke-dashoffset="213.6"></circle>
+          <text class="ring-label" id="ringText" x="-40" y="44">0%</text>
+        </svg>
+      </div>
+      <div class="progress-meta">
+        <div class="count"><span id="doneCount">0</span> / <span id="totalCount">0</span> งานเสร็จแล้ว</div>
+        <div class="progress-bar-track"><div class="progress-bar-fill" id="barFill" style="width:0%"></div></div>
+      </div>
+      <button class="reset-btn" id="resetBtn" type="button">รีเซ็ตทั้งหมด</button>
+    </div>
+  </header>
+
+  <div id="phaseList"></div>
+
+  <footer>เก็บ progress ด้วย localStorage ของเบราว์เซอร์ — ถ้าเปลี่ยนเครื่อง/เบราว์เซอร์จะไม่เห็นค่าเดิม</footer>
+
+</div>
+
+<script>
+const PHASES = [
+  { n: 0, title: "Account Setup & Guardrails",
+    goal: "ป้องกันบิลเซอร์ไพรส์ และตั้งค่าความปลอดภัยพื้นฐานแบบที่องค์กรจริงทำ",
+    cost: "ค่าใช้จ่าย: $0 (ทุกอย่างใน Phase นี้ฟรี)",
+    tasks: [
+      { t: "สมัคร AWS Free Trial", d: "ใช้บัตรเครดิต/เดบิตยืนยันตัวตน จะได้ credit $180" },
+      { t: "ตั้ง Billing Budget + Alert", d: "<code>Billing and Cost Management → Budgets → Create budget</code> → เลือก \"Cost budget\" → ตั้งวงเงินรายเดือน เช่น $20 → ตั้ง alert ที่ 50%, 80%, 100% → ใส่อีเมลรับแจ้งเตือน" },
+      { t: "เปิด Cost Explorer", d: "<code>Billing → Cost Explorer → Enable</code> ใช้ดูว่าเงินหายไปกับอะไรบ้าง" },
+      { t: "สร้าง IAM Admin User + เปิด MFA", d: "<code>IAM → Users → Create user</code> → ตั้งชื่อ เช่น wisarut-admin → attach policy <code>AdministratorAccess</code> → เปิด MFA ด้วย app เช่น Google Authenticator" },
+      { t: "Log out จาก root แล้วใช้ IAM user แทน", d: "ล็อกเอาต์จาก root → เข้าใหม่ด้วย IAM user ที่สร้าง → ตั้งใจไว้ว่าจะไม่ใช้ root อีกเลยเว้นแต่จำเป็นจริงๆ" },
+      { t: "เลือก Region หลัก", d: "แนะนำ <code>ap-southeast-1</code> (Singapore) เพราะ latency ใกล้ไทยสุด และ service ครบที่สุดในโซนนี้" }
+    ]},
+  { n: 1, title: "Networking Foundation (VPC)",
+    goal: "จำลอง network องค์กร — public zone รับ traffic จากอินเทอร์เน็ต และ private zone เก็บของสำคัญ",
+    cost: "ค่าใช้จ่าย: NAT Gateway ~$1-2/วันถ้าเปิดทิ้งไว้ — ปิดทันทีหลังใช้",
+    tasks: [
+      { t: "สร้าง VPC", d: "<code>VPC → Create VPC</code> → เลือก \"VPC and more\" (wizard ทำ subnet/route table ให้อัตโนมัติ) → CIDR <code>10.0.0.0/16</code> → ตั้ง 2 AZ, 2 public subnet, 2 private subnet" },
+      { t: "ตรวจสอบ Internet Gateway", d: "ระบบสร้างให้อัตโนมัติจาก wizard — เป็นประตูให้ public subnet ออกเน็ตได้" },
+      { t: "สร้าง NAT Gateway", d: "ให้ private subnet ออกเน็ตได้โดยไม่เปิดรับ traffic เข้า มีค่าใช้จ่ายรายชั่วโมง (~$0.045/ชม. + data) — ลบทิ้งหลังใช้เสร็จ" },
+      { t: "ตั้ง Security Group", d: "จำลอง firewall ต่อเครื่อง เช่น <code>web-sg</code> เปิดแค่ port 80/443/22 จาก IP ของคุณเท่านั้น" },
+      { t: "ตั้ง Network ACL", d: "firewall ระดับ subnet ไว้เป็น layer ป้องกันเพิ่ม" }
+    ]},
+  { n: 2, title: "Compute — EC2 + ASG + ALB",
+    goal: "deploy เซิร์ฟเวอร์แบบที่รองรับ traffic จริง ไม่ใช่เครื่องเดี่ยวที่ล่มแล้วจบ",
+    cost: "ค่าใช้จ่าย: t2.micro อยู่ใน free tier (750 ชม./เดือน ปีแรก) แต่ ALB คิดเงินรายชั่วโมง ~$0.025/ชม. — ปิดหลังใช้เสร็จ",
+    tasks: [
+      { t: "Launch EC2 instance", d: "<code>EC2 → Launch Instance</code> → Amazon Linux 2023 → type <code>t2.micro</code> (free tier eligible) → วางใน public subnet → attach <code>web-sg</code>" },
+      { t: "ติดตั้ง web server ทดสอบ", d: "SSH เข้าเครื่อง → <code>sudo yum install -y httpd && sudo systemctl start httpd</code> → ทดสอบเข้าผ่าน public IP" },
+      { t: "สร้าง AMI (image)", d: "<code>EC2 → Create Image</code> จาก instance ที่ตั้งค่าแล้ว — ใช้เป็นต้นแบบ scale เครื่องใหม่" },
+      { t: "สร้าง Launch Template", d: "ใช้ AMI ข้างต้น กำหนด instance type, security group, key pair" },
+      { t: "สร้าง Auto Scaling Group", d: "ตั้ง min 1, desired 2, max 3 → ผูกกับ Launch Template → วางในหลาย AZ" },
+      { t: "สร้าง Application Load Balancer", d: "<code>EC2 → Load Balancers → Create ALB</code> → target group ชี้ไปที่ Auto Scaling Group → เปิด health check" }
+    ]},
+  { n: 3, title: "Storage & Backup",
+    goal: "สร้างระบบ backup แบบเดียวกับที่คุณดูแลใน Acronis แต่บน AWS native tools — แกนกลางของสายงานคุณ",
+    cost: "ค่าใช้จ่าย: S3 storage ถูกมาก (~$0.025/GB/เดือน) Glacier ถูกกว่าอีก ปลอดภัยสำหรับ lab",
+    tasks: [
+      { t: "สร้าง S3 Bucket", d: "<code>S3 → Create bucket</code> → ตั้งชื่อ เช่น <code>acme-corp-backups-wisarut</code> → เปิด versioning" },
+      { t: "ตั้ง Lifecycle Policy", d: "เหมือน retention policy ใน Acronis: ย้ายไฟล์เก่ากว่า 30 วันไป S3 Glacier, ลบทิ้งหลัง 90 วัน" },
+      { t: "เปิด AWS Backup", d: "<code>AWS Backup → Create backup plan</code> → เลือก resource (EBS volume ของ EC2 ใน Phase 2) → ตั้ง schedule รายวัน, retention 7 วัน" },
+      { t: "ทดสอบ Restore", d: "ลอง restore backup ที่สร้างไว้กลับมาเป็น volume ใหม่ — ฝึก DR drill เหมือนที่ควรทำจริงกับลูกค้า" },
+      { t: "ตั้ง Cross-Region Backup (ถ้างบพอ)", d: "copy backup ไปอีก region เผื่อ region หลักมีปัญหา — concept เดียวกับ Wasabi replication" }
+    ]},
+  { n: 4, title: "Monitoring & Alerting (NOC)",
+    goal: "สร้าง dashboard + alert เหมือนงาน monitor backup status ที่ทำอยู่ทุกวัน",
+    cost: "ค่าใช้จ่าย: เกือบฟรี (CloudWatch/SNS มี free tier กว้างมาก)",
+    tasks: [
+      { t: "สร้าง CloudWatch Dashboard", d: "<code>CloudWatch → Dashboards → Create</code> → เพิ่ม widget: CPU ของ EC2, สถานะ backup job, จำนวน object ใน S3" },
+      { t: "ตั้ง CloudWatch Alarm", d: "เช่น แจ้งเตือนเมื่อ CPU > 80% หรือเมื่อ AWS Backup job status = FAILED" },
+      { t: "สร้าง SNS Topic", d: "<code>SNS → Create topic</code> → subscribe ด้วยอีเมลตัวเอง → ผูกกับ alarm ข้างต้น" },
+      { t: "ทดสอบ alert จริง", d: "หยุด backup job หรือรัน stress test บน EC2 เพื่อดูว่า alert ส่งมาจริงไหม" }
+    ]},
+  { n: 5, title: "Automation",
+    goal: "ทำ workflow อัตโนมัติแบบเดียวกับ flow ที่คุณสร้างใน Power Automate แต่ฝั่ง AWS",
+    cost: "ค่าใช้จ่าย: Lambda มี free tier 1 ล้าน request/เดือน แทบไม่มีค่าใช้จ่าย",
+    tasks: [
+      { t: "เขียน Lambda function", d: "<code>Lambda → Create function</code> → เขียน Python สั้นๆ เช่น \"ถ้า backup job fail ให้ส่ง summary email\"" },
+      { t: "ผูกกับ EventBridge Scheduler", d: "ตั้งให้ Lambda รันทุกวันตอนเช้า — เหมือน trigger รายวันของ flow ที่คุณทำ" },
+      { t: "สร้าง Systems Manager Automation", d: "สร้าง automation document ง่ายๆ เช่น \"restart service เมื่อ health check fail\"" },
+      { t: "เชื่อม Lambda เข้ากับ SNS", d: "ให้ Lambda ส่งผลลัพธ์ผ่าน SNS ต่อจาก Phase 4" }
+    ]},
+  { n: 6, title: "Infrastructure as Code (Terraform)",
+    goal: "เขียนโค้ดสร้างทุก Phase ข้างต้นใหม่ได้ในคลิกเดียว — ทักษะที่ระบบ enterprise จริงต้องมี",
+    cost: "ค่าใช้จ่าย: $0 (Terraform ฟรี ใช้แค่สร้าง resource ที่จ่ายตาม Phase ข้างต้นอยู่แล้ว)",
+    tasks: [
+      { t: "ติดตั้ง Terraform บนเครื่อง local", d: "ดาวน์โหลดจาก terraform.io แล้วตั้งค่า AWS credentials ให้ CLI ใช้งานได้" },
+      { t: "เขียนโค้ด VPC + EC2 + S3", d: "แปลงสิ่งที่ทำมือใน Phase 1-3 ให้เป็นไฟล์ <code>.tf</code>" },
+      { t: "รัน terraform plan / apply", d: "สร้าง infrastructure ใหม่ทั้งหมดจากโค้ด" },
+      { t: "ทดสอบ terraform destroy แล้วสร้างใหม่", d: "ฝึกความมั่นใจว่า infra สร้างซ้ำได้เสมอ" }
+    ]},
+  { n: 7, title: "Disaster Recovery Drill",
+    goal: "จำลองสถานการณ์จริงที่ต้องเจอ — region/server ล่ม แล้วต้องกู้คืนให้ทัน",
+    cost: "",
+    tasks: [
+      { t: "ลบ/ปิด EC2 instance หลักโดยตั้งใจ", d: "จำลอง server ล่ม" },
+      { t: "Restore จาก AWS Backup", d: "ใช้ backup ที่ทำไว้ใน Phase 3" },
+      { t: "จับเวลา RTO", d: "Recovery Time Objective — กู้คืนได้เร็วแค่ไหน" },
+      { t: "เขียนสรุปเป็น Runbook", d: "ขั้นตอน step-by-step สำหรับกู้คืนจริง" }
+    ]},
+  { n: 8, title: "Security Baseline",
+    goal: "พื้นฐานความปลอดภัยที่ระบบ backup/cloud ต้องมี",
+    cost: "",
+    tasks: [
+      { t: "เปิด AWS CloudTrail", d: "เก็บ log ทุก action ที่เกิดขึ้นในบัญชี" },
+      { t: "เปิด AWS Config", d: "ตรวจสอบว่า resource ตั้งค่าตรงตาม policy ไหม" },
+      { t: "เปิด GuardDuty", d: "ตรวจจับ activity ผิดปกติ/การโจมตี" },
+      { t: "รีวิว IAM policy ทั้งหมด", d: "ปรับให้เป็น least-privilege" }
+    ]},
+  { n: 9, title: "Cost & Capacity Reporting",
+    goal: "ต่อยอดจาก capacity-planning tool ที่ทำอยู่ แต่ดึงข้อมูลจาก AWS จริง",
+    cost: "",
+    tasks: [
+      { t: "ดู breakdown ค่าใช้จ่าย", d: "ใช้ Cost Explorer ดูแยกตาม service" },
+      { t: "ตั้ง Cost Allocation Tags", d: "แยกตาม \"แผนก\"/\"ลูกค้า\" สมมติ" },
+      { t: "ดึงข้อมูลผ่าน Cost Explorer API", d: "ใช้ Python ดึงมาทำ dashboard เอง (เทียบกับ bucket_dashboard.html)" }
+    ]},
+  { n: 10, title: "Capstone — ACME Corp เต็มรูปแบบ",
+    goal: "รวมทุก Phase เข้าด้วยกันเป็นสถานการณ์เดียว: web app + backup + NOC dashboard + automation + IaC + DR runbook + security + cost report",
+    cost: "",
+    tasks: [
+      { t: "รวมทุก Phase เป็นสถานการณ์เดียว", d: "เชื่อม web app (P2), backup (P3), dashboard (P4), automation (P5) เข้าด้วยกัน" },
+      { t: "เขียนสรุป architecture รวม", d: "ทำ diagram/เอกสารสรุปทั้งระบบ" },
+      { t: "Demo / รีวิวทั้งระบบ", d: "ทดสอบทุก flow ตั้งแต่ปกติจนถึงตอน DR" }
+    ]}
+];
+
+const STORAGE_KEY = "aws-lab-tracker-progress";
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) { return {}; }
+}
+
+function saveState(state) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch (e) { /* storage unavailable — progress just won't persist */ }
+}
+
+let state = loadState();
+
+const listEl = document.getElementById('phaseList');
+let totalTasks = 0;
+
+PHASES.forEach((phase) => {
+  totalTasks += phase.tasks.length;
+
+  const phaseEl = document.createElement('div');
+  phaseEl.className = 'phase';
+  phaseEl.dataset.phase = phase.n;
+
+  const head = document.createElement('div');
+  head.className = 'phase-head';
+  head.tabIndex = 0;
+  head.setAttribute('role', 'button');
+  head.innerHTML = `
+    <span class="phase-num">P${phase.n}</span>
+    <span class="phase-title">${phase.title}</span>
+    <span class="phase-status" data-status>0/${phase.tasks.length}</span>
+    <svg class="chev" viewBox="0 0 16 16" fill="none"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+  `;
+
+  const body = document.createElement('div');
+  body.className = 'phase-body';
+
+  const intro = document.createElement('div');
+  intro.className = 'phase-intro';
+  intro.innerHTML = `<strong>เป้าหมาย:</strong> ${phase.goal}` + (phase.cost ? `<span class="cost-line">${phase.cost}</span>` : '');
+  body.appendChild(intro);
+
+  phase.tasks.forEach((task, i) => {
+    const taskId = `p${phase.n}-t${i}`;
+    const row = document.createElement('div');
+    row.className = 'task';
+    row.innerHTML = `
+      <div class="task-row">
+        <input type="checkbox" id="${taskId}">
+        <label for="${taskId}">${task.t}</label>
+      </div>
+      <div class="task-detail">${task.d}</div>
+    `;
+    body.appendChild(row);
+  });
+
+  phaseEl.appendChild(head);
+  phaseEl.appendChild(body);
+  listEl.appendChild(phaseEl);
+
+  head.addEventListener('click', () => phaseEl.classList.toggle('open'));
+  head.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); phaseEl.classList.toggle('open'); }
+  });
+});
+
+document.getElementById('totalCount').textContent = totalTasks;
+
+function applyState() {
+  let doneTotal = 0;
+
+  PHASES.forEach((phase) => {
+    const phaseEl = document.querySelector(`.phase[data-phase="${phase.n}"]`);
+    let doneInPhase = 0;
+
+    phase.tasks.forEach((_, i) => {
+      const taskId = `p${phase.n}-t${i}`;
+      const checked = !!state[taskId];
+      const input = document.getElementById(taskId);
+      input.checked = checked;
+      input.closest('.task').classList.toggle('checked', checked);
+      if (checked) { doneInPhase++; doneTotal++; }
+    });
+
+    const statusEl = phaseEl.querySelector('[data-status]');
+    statusEl.textContent = `${doneInPhase}/${phase.tasks.length}`;
+    statusEl.classList.remove('done', 'progress');
+    if (doneInPhase === phase.tasks.length) statusEl.classList.add('done');
+    else if (doneInPhase > 0) statusEl.classList.add('progress');
+  });
+
+  document.getElementById('doneCount').textContent = doneTotal;
+  const pct = totalTasks ? Math.round((doneTotal / totalTasks) * 100) : 0;
+  document.getElementById('barFill').style.width = pct + '%';
+
+  const circumference = 213.6;
+  const offset = circumference - (pct / 100) * circumference;
+  document.getElementById('ringFill').style.strokeDashoffset = offset;
+  document.getElementById('ringText').textContent = pct + '%';
+}
+
+listEl.addEventListener('change', (e) => {
+  if (e.target.type !== 'checkbox') return;
+  state[e.target.id] = e.target.checked;
+  saveState(state);
+  applyState();
+});
+
+document.getElementById('resetBtn').addEventListener('click', () => {
+  if (!confirm('รีเซ็ต progress ทั้งหมดกลับเป็นค่าว่าง?')) return;
+  state = {};
+  saveState(state);
+  applyState();
+});
+
+applyState();
+
+document.querySelector('.phase[data-phase="0"]').classList.add('open');
+</script>
+</body>
+</html>
